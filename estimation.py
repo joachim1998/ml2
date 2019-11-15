@@ -6,7 +6,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
 
 def f(x):
-    return sin(x)*math.exp(-x*x/16) 
+    return math.sin(x)*math.exp(-x*x/16) 
 
 def make_data(N, mean, var, nb_irr, nb_ls):
     min_bound = -10
@@ -17,7 +17,7 @@ def make_data(N, mean, var, nb_irr, nb_ls):
         x_tab = np.random.uniform(min_bound, max_bound, N) #the relevant points
 
         if not nb_irr == 0:
-            x_tab.append(np.random.uniform(min_bound, max_bound, nb_irr)) #the irrelevant points
+            np.append(x_tab, np.random.uniform(min_bound, max_bound, nb_irr)) #the irrelevant points
 
         x_tab.sort()
         y_tab = []
@@ -25,7 +25,9 @@ def make_data(N, mean, var, nb_irr, nb_ls):
         for x in x_tab:
             y_tab.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
 
-        ls.append((x_tab,y_tab)) #crasset avait fais un truc chelou avec le tableau de x
+        x_as_array = [[x_] for x_ in x_tab]
+
+        ls.append((x_as_array,y_tab)) #crasset avait fais un truc chelou avec le tableau de x
     return ls
 
 def to_fit(learning_samples, regression_method, nb_neighbors=None):
@@ -58,7 +60,7 @@ def compute_residual_error(elm_to_test, mean, var, nb_ls): #var_y {y}
     for i in range(nb_ls):
         y_tab.append(f(elm_to_test) + np.random.normal(mean, math.sqrt(var))/10)
 
-    return np.var(y)
+    return np.var(y_tab)
 
 def compute_squared_bias(elm_to_test, fitted_models): # bias^2 = error between bayes and average model (over all LS)
     predicted = []
@@ -167,43 +169,45 @@ def change_nb_irrelevant(N, nb_ls, mean, var, test_set, regression_method, nb_ne
 if __name__ == "__main__":
     N = 100
     nb_ls = 5
-    test_set = np.arrange(-10,10,0.01)
+    test_set = np.arange(-10,10,0.01)
     mean = 0
     var = 1
     nb_irr = 0
     nb_neighbors = 5
 
-    to_compute = "Q_3d"
+    #to_compute = "Q_3d"
     #to_compute = "change_size_ls"
     #to_compute = "change_complexity"
-    #to_compute = "change_nb_irrelevant"
+    to_compute = "change_nb_irrelevant"
 
     if to_compute == "Q_3d":
         residual_errors, squared_bias, variances_ls, expected_errors = Q_3d(N, nb_irr, nb_ls, mean, var, test_set, "KNR", nb_neighbors)
-        make_plot(test_set, "x", residual_errors, "Residual error", squared_bias, "Squared bias", variances_ls, "Variance", expected_errors, "Expected errors", "KNR_3d.png")
+        make_plot(test_set, "x", residual_errors, "Residual error", squared_bias, "Squared bias", variances_ls, "Variance", \
+        		 expected_errors, "Expected errors", "KNR_3d.png")
 
         residual_errors, squared_bias, variances_ls, expected_errors = Q_3d(N, nb_irr, nb_ls, mean, var, test_set, "LNR")
-        make_plot(test_set, "x", residual_errors, "Residual error", squared_bias, "Squared bias", variances_ls, "Variance", expected_errors, "Expected errors", "LNR_3d.png")
+        make_plot(test_set, "x", residual_errors, "Residual error", squared_bias, "Squared bias", variances_ls, "Variance", \
+        		 expected_errors, "Expected errors", "LNR_3d.png")
 
     elif to_compute == "change_size_ls":
         size_ls, residual_errors, squared_bias, variances_ls, expected_errors = change_size_ls(nb_irr, nb_ls, mean, var, test_set, "KNR", nb_neighbors)
-        make_plot(size_ls, "Size of the learning set", residual_errors, "Mean residual error", squared_bias, "Mean squared bias", variances_ls, "Mean variance", expected_errors, \
-                 "Mean expected errors", "KNR_change_size.png")
+        make_plot(size_ls, "Size of the learning set", residual_errors, "Mean residual error", squared_bias, "Mean squared bias", \
+        		 variances_ls, "Mean variance", expected_errors, "Mean expected errors", "KNR_change_size.png")
 
         size_ls, residual_errors, squared_bias, variances_ls, expected_errors = change_size_ls(nb_irr, nb_ls, mean, var, test_set, "LNR")
-        make_plot(size_ls, "Size of the learning set", residual_errors, "Mean residual error", squared_bias, "Mean squared bias", variances_ls, "Mean variance", expected_errors,\
-                 "Mean xpected errors", "LNR_change_size.png")
+        make_plot(size_ls, "Size of the learning set", residual_errors, "Mean residual error", squared_bias, "Mean squared bias", \
+        		 variances_ls, "Mean variance", expected_errors, "Mean expected errors", "LNR_change_size.png")
 
     elif to_compute == "change_complexity":
-        complexity, residual_errors, squared_bias, variances_ls, expected_errors = KNR_change_complexity(N, nb_irr, nb_ls, mean, var, test_set, "KNR")
-        make_plot(complexity, "Complexity", residual_errors, "Mean residual error", squared_bias, "Mean squared bias", variances_ls, "Mean variance", expected_errors, \
-                 "Mean expected errors", "KNR_change_complex.png")
+        complexity, residual_errors, squared_bias, variances_ls, expected_errors = change_complexity(N, nb_irr, nb_ls, mean, var, test_set, "KNR")
+        make_plot(complexity, "Complexity", residual_errors, "Mean residual error", squared_bias, "Mean squared bias", \
+        		 variances_ls, "Mean variance", expected_errors, "Mean expected errors", "KNR_change_complexity.png")
 
     else:
         nb_irrelevant, residual_errors, squared_bias, variances_ls, expected_errors = change_nb_irrelevant(N, nb_ls, mean, var, test_set, "KNR", nb_neighbors)
-        make_plot(nb_irrelevant, "Number of irrelevant variables", residual_errors, "Mean residual error", squared_bias, "Mean squared bias", variances_ls,\
-                 "Mean variance", expected_errors, "Mean expected errors", "KNR_change_irr.png")
+        make_plot(nb_irrelevant, "Number of irrelevant variables", residual_errors, "Mean residual error", squared_bias, \
+        		 "Mean squared bias", variances_ls, "Mean variance", expected_errors, "Mean expected errors", "KNR_change_irr.png")
 
         nb_irrelevant, residual_errors, squared_bias, variances_ls, expected_errors = change_nb_irrelevant(N, nb_ls, mean, var, test_set, "LNR")
-        make_plot(nb_irrelevant, "Number of irrelevant variables", residual_errors, "Mean residual error", squared_bias, "Mean squared bias", variances_ls,\
-                 "Mean variance", expected_errors, "Mean xpected errors", "LNR_change_irr.png")
+        make_plot(nb_irrelevant, "Number of irrelevant variables", residual_errors, "Mean residual error", squared_bias, \
+        		 "Mean squared bias", variances_ls, "Mean variance", expected_errors, "Mean xpected errors", "LNR_change_irr.png")
