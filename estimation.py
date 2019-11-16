@@ -6,7 +6,14 @@ from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
 
 def f(x):
-    return math.sin(x)*math.exp(-x*x/16) 
+    return math.sin(x)*math.exp(-x*x/16)
+
+def get_y_tuple(x_tuple, mean, var):
+    y = []
+    for x in x_tuple:
+        y.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
+
+    return tuple(y)
 
 def make_data(N, mean, var, nb_irr, nb_ls):
     min_bound = -10
@@ -14,20 +21,26 @@ def make_data(N, mean, var, nb_irr, nb_ls):
     ls = []
 
     for i in range(nb_ls):
-        x_tab = np.random.uniform(min_bound, max_bound, N) #the relevant points
+        x_tab = np.random.uniform(min_bound, max_bound, N).tolist() #the relevant points
 
         if not nb_irr == 0:
-            np.append(x_tab, np.random.uniform(min_bound, max_bound, nb_irr)) #the irrelevant points
+            for j in range(len(x_tab)):
+                x_tab[j] = (x_tab[j],) + tuple(np.random.uniform(min_bound, max_bound, nb_irr)) #the irrelevant points
 
         x_tab.sort()
         y_tab = []
+        x_array = []
 
         for x in x_tab:
-            y_tab.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
+            if nb_irr == 0:
+                y_tab.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
+            else:
+                #y_tab.append(f(x[0]) + np.random.normal(mean, math.sqrt(var))/10)
+                y_tab.append(get_y_tuple(x, mean, var))
 
-        x_as_array = [[x_] for x_ in x_tab]
+            x_array.append([x])
 
-        ls.append((x_as_array,y_tab)) #crasset avait fais un truc chelou avec le tableau de x
+        ls.append((x_array,y_tab))
     return ls
 
 def to_fit(learning_samples, regression_method, nb_neighbors=None):
@@ -35,6 +48,8 @@ def to_fit(learning_samples, regression_method, nb_neighbors=None):
 
     for ls in learning_samples:
         (x_samples, y_samples) = ls
+        print(x_samples)
+        print(y_samples)
         if regression_method == "KNR":
             fitted.append(KNeighborsRegressor(nb_neighbors).fit(x_samples, y_samples))
         else:
@@ -51,34 +66,29 @@ def make_plot(x, x_label, y1, y1_label, y2, y2_label, y3, y3_label, y4, y4_label
     plt.plot(x, y4, label=y4_label)
 
     plt.xlabel(x_label)
+    plt.ylabel("Error")
     plt.legend(loc="upper right")
 
     plt.savefig(filename)
 
-def compute_residual_error(elm_to_test, mean, var, nb_ls): #var_y {y}
+def compute_errors(elm_to_test, mean, var, nb_ls, fitted_models):
+    #residual error
     y_tab = []
     for i in range(nb_ls):
         y_tab.append(f(elm_to_test) + np.random.normal(mean, math.sqrt(var))/10)
+    residual_error = np.var(y_tab)
 
-    return np.var(y_tab)
-
-def compute_squared_bias(elm_to_test, fitted_models): # bias^2 = error between bayes and average model (over all LS)
+    #squared_bias and variance LS
     predicted = []
     for model in fitted_models:
         predicted.append(model.predict([[elm_to_test]]))
-    average_model = np.mean(predicted)
+    variance_ls = np.var(predicted)
+    squared_bias = (np.mean(predicted) - f(elm_to_test))**2
 
-    return (average_model- f(elm_to_test))**2 #^2
+    #expected error
+    expected_error = residual_error + squared_bias + variance_ls
 
-def compute_variance_ls(elm_to_test, fitted_models): #var_LS {y}
-    predicted = []
-    for model in fitted_models:
-        predicted.append(model.predict([[elm_to_test]])) # car pour l'arg de predict X : array-like, shape (n_query, n_features), or (n_query, n_indexed) if metric == ‘precomputed’
-
-    return np.var(predicted)
-
-def compute_expected_error(residual_error, squared_bias, variance_ls):
-    return residual_error + squared_bias + variance_ls
+    return residual_error, squared_bias, variance_ls, expected_error
 
 def Q_3d(N, nb_irr, nb_ls, mean, var, test_set, regression_method, nb_neighbors=None):
     ls = make_data(N, mean, var, nb_irr, nb_ls)
@@ -90,10 +100,7 @@ def Q_3d(N, nb_irr, nb_ls, mean, var, test_set, regression_method, nb_neighbors=
     expected_errors = []
 
     for test in test_set:
-        residual_error = compute_residual_error(test, mean, var, nb_ls)
-        squared_bias_val = compute_squared_bias(test, fitted_models)
-        variance_ls = compute_variance_ls(test, fitted_models)
-        expected_error = compute_expected_error(residual_error, squared_bias_val, variance_ls)
+        residual_error, squared_bias_val, variance_ls, expected_error = compute_errors(test, mean, var, nb_ls, fitted_models)
 
         residual_errors.append(residual_error)
         squared_bias.append(squared_bias_val)
@@ -158,6 +165,8 @@ def change_nb_irrelevant(N, nb_ls, mean, var, test_set, regression_method, nb_ne
     for nb_irr in nb_irrelevant:
         residual_error, squared_bias_val, variance_ls, expected_error = mean_Q_3d(N, nb_irr, nb_ls, mean, var, test_set, regression_method, nb_neighbors)
 
+        print("OK pour nb_irre = " + str(nb_irr))
+
         residual_errors.append(residual_error)
         squared_bias.append(squared_bias_val)
         variances_ls.append(variance_ls)
@@ -210,4 +219,4 @@ if __name__ == "__main__":
 
         nb_irrelevant, residual_errors, squared_bias, variances_ls, expected_errors = change_nb_irrelevant(N, nb_ls, mean, var, test_set, "LNR")
         make_plot(nb_irrelevant, "Number of irrelevant variables", residual_errors, "Mean residual error", squared_bias, \
-        		 "Mean squared bias", variances_ls, "Mean variance", expected_errors, "Mean xpected errors", "LNR_change_irr.png")
+        		 "Mean squared bias", variances_ls, "Mean variance", expected_errors, "Mean expected errors", "LNR_change_irr.png")
