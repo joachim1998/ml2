@@ -42,7 +42,9 @@ def make_data(N, mean, var, nb_irr, nb_ls):
 
             #x_array.append([x])
                 x_array.append([x] + np.random.uniform(min_bound, max_bound, nb_irr).tolist())
-
+    
+        x_array = np.matrix(x_array)
+        y_tab = np.matrix(y_tab)
         ls.append((x_array,y_tab))
     return ls
 
