@@ -25,7 +25,7 @@ def make_data(N, mean, var, nb_irr, nb_ls):
         
     if nb_irr != 0:
         for i in range(nb_irr)
-                x_irr[i] = np.random.uniform(min_bound, max_bound, N).tolist() #the irrelevant variables
+                x_irr.append(np.random.uniform(min_bound, max_bound, N).tolist()) #the irrelevant variables
 
         #if not nb_irr == 0:
             #for j in range(len(x_tab)):
@@ -38,7 +38,7 @@ def make_data(N, mean, var, nb_irr, nb_ls):
 
         for x in x_tab:
             y_tab.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
-            x_array.append([x])
+            x_array.append([x,x_irr])
 
         ls.append((x_array,y_tab))
     return ls
