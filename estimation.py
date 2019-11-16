@@ -21,27 +21,24 @@ def make_data(N, mean, var, nb_irr, nb_ls):
     ls = []
 
     for i in range(nb_ls):
-        x_tab = np.random.uniform(min_bound, max_bound, N).tolist() #the relevant points
+        x_tab = np.random.uniform(min_bound, max_bound, N).tolist() #the relevant variable
+        
+    if nb_irr != 0:
+        for i in range(nb_irr)
+                x_irr[i] = np.random.uniform(min_bound, max_bound, N).tolist() #the irrelevant variables
 
         #if not nb_irr == 0:
             #for j in range(len(x_tab)):
                 #x_tab[j] = (x_tab[j],) + tuple(np.random.uniform(min_bound, max_bound, nb_irr)) #the irrelevant points
                # x_tab[j].append(np.random.uniform(min_bound, max_bound, nb_irr).tolist())
 
-        x_tab.sort()
+        #x_tab.sort()
         y_tab = []
         x_array = []
 
         for x in x_tab:
-            if nb_irr == 0:
-                y_tab.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
-                x_array.append([x])
-            else:
-                y_tab.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
-                #y_tab.append(get_y_tuple(x, mean, var))
-
-            #x_array.append([x])
-                x_array.append([x] + np.random.uniform(min_bound, max_bound, nb_irr).tolist())
+            y_tab.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
+            x_array.append([x])
 
         ls.append((x_array,y_tab))
     return ls
