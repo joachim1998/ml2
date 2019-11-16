@@ -19,12 +19,13 @@ def make_data(N, mean, var, nb_irr, nb_ls):
     min_bound = -10
     max_bound = 10
     ls = []
+    x_irr =[]
 
     for i in range(nb_ls):
         x_tab = np.random.uniform(min_bound, max_bound, N).tolist() #the relevant variable
         
-    if nb_irr != 0:
-        for i in range(nb_irr)
+    if not nb_irr == 0:
+        for i in range(nb_irr):
                 x_irr.append(np.random.uniform(min_bound, max_bound, N).tolist()) #the irrelevant variables
 
         #if not nb_irr == 0:
@@ -35,11 +36,15 @@ def make_data(N, mean, var, nb_irr, nb_ls):
         #x_tab.sort()
         y_tab = []
         x_array = []
+        i = 0;
 
         for x in x_tab:
             y_tab.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
-            x_array.append([x,x_irr])
+            x_array.append([x,x_irr[0][i]])
+            i += 1
 
+        x_array = np.matrix(x_array)
+        y_tab = np.matrix(y_tab)
         ls.append((x_array,y_tab))
     return ls
 
@@ -48,8 +53,8 @@ def to_fit(learning_samples, regression_method, nb_neighbors=None):
 
     for ls in learning_samples:
         (x_samples, y_samples) = ls
-        print(x_samples)
-        print(y_samples)
+        #print(x_samples)
+        #print(y_samples)
         if regression_method == "KNR":
             fitted.append(KNeighborsRegressor(nb_neighbors).fit(x_samples, y_samples))
         else:
