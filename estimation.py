@@ -8,12 +8,8 @@ from sklearn.neighbors import KNeighborsRegressor
 def f(x):
     return math.sin(x)*math.exp(-x*x/16)
 
-def get_y_tuple(x_tuple, mean, var):
-    y = []
-    for x in x_tuple:
-        y.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
-
-    return tuple(y)
+def getIrrelevants(nb_irr, min_bound, max_bound):
+    return np.random.uniform(min_bound, max_bound, nb_irr).tolist()
 
 def make_data(N, mean, var, nb_irr, nb_ls):
     min_bound = -10
@@ -22,11 +18,6 @@ def make_data(N, mean, var, nb_irr, nb_ls):
 
     for i in range(nb_ls):
         x_tab = np.random.uniform(min_bound, max_bound, N).tolist() #the relevant points
-
-        #if not nb_irr == 0:
-            #for j in range(len(x_tab)):
-                #x_tab[j] = (x_tab[j],) + tuple(np.random.uniform(min_bound, max_bound, nb_irr)) #the irrelevant points
-               # x_tab[j].append(np.random.uniform(min_bound, max_bound, nb_irr).tolist())
 
         x_tab.sort()
         y_tab = []
@@ -38,14 +29,9 @@ def make_data(N, mean, var, nb_irr, nb_ls):
                 x_array.append([x])
             else:
                 y_tab.append(f(x) + np.random.normal(mean, math.sqrt(var))/10)
-                #y_tab.append(get_y_tuple(x, mean, var))
+                x_array.append([x] + getIrrelevants(nb_irr, min_bound, max_bound))
 
-            #x_array.append([x])
-                x_array.append([x] + np.random.uniform(min_bound, max_bound, nb_irr).tolist())
-    
-        x_array = np.matrix(x_array)
-        y_tab = np.matrix(y_tab)
-        ls.append((x_array,y_tab))
+        ls.append((np.matrix(x_array),y_tab))
     return ls
 
 def to_fit(learning_samples, regression_method, nb_neighbors=None):
@@ -53,8 +39,7 @@ def to_fit(learning_samples, regression_method, nb_neighbors=None):
 
     for ls in learning_samples:
         (x_samples, y_samples) = ls
-        print(x_samples)
-        print(y_samples)
+
         if regression_method == "KNR":
             fitted.append(KNeighborsRegressor(nb_neighbors).fit(x_samples, y_samples))
         else:
@@ -71,7 +56,6 @@ def make_plot(x, x_label, y1, y1_label, y2, y2_label, y3, y3_label, y4, y4_label
     plt.plot(x, y4, label=y4_label)
 
     plt.xlabel(x_label)
-    plt.ylabel("Error")
     plt.legend(loc="upper right")
 
     plt.savefig(filename)
@@ -80,15 +64,15 @@ def compute_errors(elm_to_test, mean, var, nb_ls, fitted_models):
     #residual error
     y_tab = []
     for i in range(nb_ls):
-        y_tab.append(f(elm_to_test) + np.random.normal(mean, math.sqrt(var))/10)
+        y_tab.append(f(elm_to_test[0]) + np.random.normal(mean, math.sqrt(var))/10)
     residual_error = np.var(y_tab)
 
     #squared_bias and variance LS
     predicted = []
     for model in fitted_models:
-        predicted.append(model.predict([[elm_to_test]]))
+        predicted.append(model.predict([elm_to_test]))
     variance_ls = np.var(predicted)
-    squared_bias = (np.mean(predicted) - f(elm_to_test))**2
+    squared_bias = (np.mean(predicted) - f(elm_to_test[0]))**2
 
     #expected error
     expected_error = residual_error + squared_bias + variance_ls
@@ -160,7 +144,7 @@ def change_complexity(N, nb_irr, nb_ls, mean, var, test_set, regression_method):
     return complexity, residual_errors, squared_bias, variances_ls, expected_errors
 
 def change_nb_irrelevant(N, nb_ls, mean, var, test_set, regression_method, nb_neighbors=None):
-    nb_irrelevant = range(0,100,1)
+    nb_irrelevant = range(0,50,1)
 
     residual_errors = []
     squared_bias = []
@@ -168,9 +152,15 @@ def change_nb_irrelevant(N, nb_ls, mean, var, test_set, regression_method, nb_ne
     expected_errors = []
 
     for nb_irr in nb_irrelevant:
-        residual_error, squared_bias_val, variance_ls, expected_error = mean_Q_3d(N, nb_irr, nb_ls, mean, var, test_set, regression_method, nb_neighbors)
 
-        print("OK pour nb_irre = " + str(nb_irr))
+        #add the irrelevant variables to the test set
+        test_set_irr = []
+
+        for test in test_set:
+            test_set_irr.append(test + getIrrelevants(nb_irr, -10, 10))
+
+
+        residual_error, squared_bias_val, variance_ls, expected_error = mean_Q_3d(N, nb_irr, nb_ls, mean, var, test_set_irr, regression_method, nb_neighbors)
 
         residual_errors.append(residual_error)
         squared_bias.append(squared_bias_val)
@@ -183,16 +173,20 @@ def change_nb_irrelevant(N, nb_ls, mean, var, test_set, regression_method, nb_ne
 if __name__ == "__main__":
     N = 100
     nb_ls = 5
-    test_set = np.arange(-10,10,0.01)
+    test_set_val = np.arange(-10,10,0.01)
     mean = 0
     var = 1
     nb_irr = 0
     nb_neighbors = 5
 
+    test_set = []
+    for val in test_set_val:
+        test_set.append([val])
+
     #to_compute = "Q_3d"
     #to_compute = "change_size_ls"
-    #to_compute = "change_complexity"
-    to_compute = "change_nb_irrelevant"
+    to_compute = "change_complexity"
+    #to_compute = "change_nb_irrelevant"
 
     if to_compute == "Q_3d":
         residual_errors, squared_bias, variances_ls, expected_errors = Q_3d(N, nb_irr, nb_ls, mean, var, test_set, "KNR", nb_neighbors)
